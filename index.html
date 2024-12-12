@@ -3,34 +3,134 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
-      body {
-        font-family: sans-serif;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        background-color: #f9f9f9;
-      }
-      .chart-container {
-        width: 100%;
-        height: 100%;
-      }
-      text {
-        pointer-events: none;
-      }
-      rect {
-        cursor: pointer;
-      }
-    </style>
+    <title>Plotly Treemap</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   </head>
   <body>
-    <div class="chart-container">
-      <svg id="chart"></svg>
-    </div>
-    <script src="index.js"></script>
+    <div id="treemap" style="width: 100%; height: 100vh"></div>
+
+    <script>
+      const jsonData = {
+        "AndroidManifest.xml": "76K",
+        "DebugProbesKt.bin": "4.0K",
+        "META-INF": {
+          "androidx.activity_activity-ktx.version": "4.0K",
+          "androidx.activity_activity.version": "4.0K",
+          "androidx.annotation_annotation-experimental.version": "4.0K",
+          "sub-meta": {
+            "libsupport.so": "12K",
+            "support-files": {
+              "libbase.so": "25K",
+              res: {
+                "res_main.xml": "5K",
+                "res_secondary.xml": "3K",
+                "deep-level": {
+                  "file-level5.json": "1.2K",
+                  "file-level5.txt": "600B",
+                },
+              },
+            },
+          },
+        },
+        assets: {
+          images: {
+            "logo.png": "10K",
+            "background.jpg": "120K",
+            "sub-images": {
+              "thumbnail.png": "2K",
+              "icon.ico": "1.2K",
+              "extra-images": {
+                "cover.png": "15K",
+                "banner.jpg": "45K",
+                "deep-level-images": {
+                  "sample.png": "500B",
+                  "test.svg": "2K",
+                },
+              },
+            },
+          },
+          fonts: {
+            "font1.ttf": "20K",
+            "font2.otf": "35K",
+            "sub-fonts": {
+              "font3.woff": "15K",
+              "sub-level-fonts": {
+                "font4.woff2": "10K",
+                "deep-font-files": {
+                  "small-font.woff": "5K",
+                  "tiny-font.eot": "2K",
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const labels = [];
+      const parents = [];
+      const values = [];
+
+      function parseTree(obj, parent) {
+        for (const key in obj) {
+          const value = obj[key];
+
+          // Add the current key to labels and parents
+          labels.push(key);
+          parents.push(parent);
+
+          if (typeof value === "object" && value !== null) {
+            // No specific size for folders
+            values.push(0);
+            parseTree(value, key);
+          } else {
+            // Parse file size for files
+            values.push(parseSize(value));
+          }
+        }
+      }
+
+      function parseSize(sizeStr) {
+        if (typeof sizeStr !== "string") return 0;
+        const units = { B: 1, K: 1024, M: 1024 * 1024 };
+        const match = sizeStr.match(/([\d.]+)([KMB])/);
+        return match ? parseFloat(match[1]) * units[match[2]] : 0;
+      }
+
+      // Start with the root node
+      labels.push("root");
+      parents.push("");
+      values.push(0);
+
+      // Parse the JSON data with "root" as the parent for all top-level keys
+      parseTree(jsonData, "root");
+
+      var data = [
+        {
+          type: "treemap",
+          labels: labels,
+          parents: parents,
+          values,
+          marker: {
+            colors: [
+              "pink",
+              "royalblue",
+              "lightgray",
+              "purple",
+              "cyan",
+              "lightgray",
+              "lightblue",
+            ],
+          },
+        },
+      ];
+
+      const layout = {
+        title: "Treemap Visualization",
+        height: 700,
+        width: 1000,
+      };
+
+      Plotly.newPlot("treemap", data, layout);
+    </script>
   </body>
 </html>
