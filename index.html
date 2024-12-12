@@ -9198,15 +9198,20 @@
         "user-messaging-platform.properties": "4.0K",
         "vision-common.properties": "4.0K",
         "vision-interfaces.properties": "4.0K",
-        // total_apk_size: "471M",
+        total_apk_size: "471M",
       };
 
       const labels = [];
       const parents = [];
       const values = [];
+      const valueMap = {};
 
       function parseTree(obj, parent) {
+        let totalSize = 0;
+
         for (const key in obj) {
+          if (key === "total_apk_size") continue;
+
           const value = obj[key];
           const nodeName = parent ? `${parent}/${key}` : key;
 
@@ -9214,18 +9219,28 @@
           parents.push(parent || "root");
 
           if (typeof value === "object" && value !== null) {
-            values.push(0);
-            parseTree(value, nodeName);
+            const childSize = parseTree(value, nodeName);
+            values.push(childSize);
+            totalSize += childSize;
           } else {
-            values.push(parseSize(value));
+            const fileSize = parseSize(value);
+            values.push(fileSize);
+            totalSize += fileSize;
           }
         }
+
+        if (parent) {
+          valueMap[parent] = (valueMap[parent] || 0) + totalSize;
+        }
+
+        return totalSize;
       }
 
       function parseSize(sizeStr) {
         if (typeof sizeStr !== "string") return 0;
-        const units = { B: 1, K: 1024, M: 1024 * 1024 };
+        const units = { B: 1 / (1024 * 1024), K: 1 / 1024, M: 1 };
         const match = sizeStr.match(/([\d.]+)([KMB])/);
+        console.log(parseFloat(match[1]), units[match[2]]);
         return match ? parseFloat(match[1]) * units[match[2]] : 0;
       }
 
@@ -9233,9 +9248,8 @@
       parents.push("");
       values.push(0);
 
-      parseTree(jsonData, "root");
-
-      console.log("TEST VALUES", values);
+      const rootSize = parseTree(jsonData, "root");
+      values[0] = 0;
 
       var data = [
         {
@@ -9259,7 +9273,7 @@
       ];
 
       const layout = {
-        title: "Treemap Visualization",
+        title: "Treemap Visualization, все считается в МБ",
         height: 700,
         width: 1200,
       };
